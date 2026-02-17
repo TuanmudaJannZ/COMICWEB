@@ -10,7 +10,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     
     <style>
-        /* --- SISTEM TEMA VARIABEL --- */
         :root {
             --comic-border: 3px solid #000;
             --app-yellow: #facc15;
@@ -34,6 +33,517 @@
             --input-border: #d4d4d8;
             --header-bg: rgba(255, 255, 255, 0.9);
             --shadow-color: #71717a;
+            --pattern-opacity: 0.08;
+        }
+        
+        body {
+            background-color: var(--bg-app);
+            color: var(--text-main);
+            font-family: 'Comic Neue', cursive;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .comic-font { font-family: 'Bangers', cursive; letter-spacing: 1px; }
+
+        .app-card {
+            background: var(--bg-card);
+            border: var(--comic-border);
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 0px var(--shadow-color);
+        }
+
+        .btn-tap {
+            transition: transform 0.1s ease;
+            cursor: pointer;
+        }
+        .btn-tap:active { transform: scale(0.95); }
+
+        .comic-input {
+            background: var(--input-bg);
+            border: 2px solid var(--input-border);
+            border-radius: 1rem;
+            padding: 0.75rem 1rem;
+            width: 100%;
+            color: var(--text-main);
+        }
+
+        .loader {
+            border: 5px solid var(--input-border);
+            border-top: 5px solid var(--app-yellow);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .progress-bar-container {
+            width: 100%;
+            max-width: 280px;
+            height: 12px;
+            background: #333;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 2px solid #000;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: var(--app-yellow);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .hidden-render-container {
+            position: fixed;
+            left: -9999px;
+            top: 0;
+            z-index: -100;
+        }
+        
+        #export-render-zone { width: 794px; min-height: 1123px; background: white; color: black; }
+        #ig-story-zone { width: 1080px; height: 1920px; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+
+        .panel-transition { transition: opacity 0.3s ease-in-out; }
+    </style>
+</head>
+<body class="min-h-screen pb-20">
+
+    <header class="sticky top-0 z-40 py-4 px-6 bg-[var(--header-bg)] backdrop-blur-md border-b-2 border-[var(--input-border)]">
+        <div class="flex justify-between items-center max-w-5xl mx-auto">
+            <h1 class="comic-font text-3xl text-yellow-400 italic">COMIC CRAFT</h1>
+            <button onclick="toggleTheme()" id="theme-toggle" class="btn-tap bg-[var(--input-bg)] p-2 border-2 border-[var(--input-border)] rounded-xl text-xl">🌙</button>
+        </div>
+    </header>
+
+    <main class="max-w-xl mx-auto p-5">
+        
+        <!-- Welcome Section -->
+        <section id="welcome-section" class="text-center py-12">
+            <div class="app-card p-8 mb-6 border-yellow-400/30">
+                <div class="text-6xl mb-4">🎨</div>
+                <h2 class="comic-font text-4xl text-yellow-400 mb-2">KOMIK GENERATOR</h2>
+                <p class="text-[var(--text-muted)] text-sm mb-8 italic">Ubah ide menjadi visual komik profesional dalam sekejap.</p>
+                <button onclick="showCreator()" class="btn-tap w-full bg-yellow-400 text-black py-4 comic-font text-2xl border-b-4 border-black shadow-[0_4px_0px_#854d0e]">
+                    MULAI KARYA 🚀
+                </button>
+            </div>
+        </section>
+
+        <!-- Form Creator -->
+        <section id="creator-section" class="hidden">
+            <div class="app-card p-6 mb-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="comic-font text-2xl text-yellow-400">EDITOR CERITA</h2>
+                    <button onclick="hideCreator()" class="text-[var(--text-muted)] font-bold text-xs uppercase">Batal</button>
+                </div>
+
+                <button onclick="generateFullIdea()" class="btn-tap w-full mb-6 py-3 bg-gradient-to-r from-yellow-400 to-orange-500 text-black font-bold rounded-xl border-2 border-black shadow-[4px_4px_0px_black] text-xs">
+                    💡 DAPATKAN IDE OTOMATIS ✨
+                </button>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-[10px] font-black text-[var(--text-muted)] uppercase mb-1 tracking-widest">Nama Kreator</label>
+                        <input type="text" id="creator-name" placeholder="Nama Anda..." class="comic-input">
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-black text-[var(--text-muted)] uppercase mb-1 tracking-widest">Judul Komik</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="comic-title" placeholder="Judul..." class="comic-input">
+                            <button onclick="suggestTitle()" class="btn-tap bg-[var(--input-border)] px-4 border-2 border-[var(--input-border)] rounded-xl">✨</button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-black text-[var(--text-muted)] uppercase mb-1 tracking-widest">Visual Karakter</label>
+                        <input type="text" id="character-desc" placeholder="Rambut, pakaian, ciri khas..." class="comic-input">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[10px] font-black text-[var(--text-muted)] uppercase mb-1 tracking-widest">Genre</label>
+                            <select id="comic-genre" class="comic-input appearance-none">
+                                <option value="Action">Action</option>
+                                <option value="Adventure">Adventure</option>
+                                <option value="Fantasy">Fantasy</option>
+                                <option value="Horror">Horror</option>
+                                <option value="Sci-Fi">Sci-Fi</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-black text-[var(--text-muted)] uppercase mb-1 tracking-widest">Style</label>
+                            <select id="comic-style" class="comic-input appearance-none">
+                                <option value="Vibrant Anime Art">Anime</option>
+                                <option value="Detailed Manga Ink">Manga</option>
+                                <option value="Modern Webtoon Art">Webtoon</option>
+                                <option value="Western Superhero Comic Style">Western</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <label class="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">Jumlah Panel</label>
+                            <span class="text-yellow-400 font-bold text-xs" id="page-val">3 Panel</span>
+                        </div>
+                        <input type="range" id="comic-pages" min="1" max="10" value="3" class="w-full h-2 bg-[var(--input-border)] rounded-lg appearance-none accent-yellow-400" oninput="document.getElementById('page-val').innerText = this.value + ' Panel'">
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-black text-[var(--text-muted)] uppercase mb-1 tracking-widest">Plot Cerita Singkat</label>
+                        <textarea id="comic-desc" rows="3" placeholder="Contoh: Seorang anak menemukan pedang bercahaya di hutan..." class="comic-input text-sm"></textarea>
+                    </div>
+                </div>
+
+                <button onclick="generateComic()" class="btn-tap w-full mt-8 bg-yellow-400 text-black py-4 comic-font text-2xl border-b-4 border-black shadow-[0_4px_0px_#854d0e]">
+                    BANGKITKAN! ⚡
+                </button>
+            </div>
+        </section>
+
+        <!-- Preview Section -->
+        <section id="preview-section" class="hidden">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h2 class="comic-font text-2xl text-yellow-400 uppercase truncate max-w-[180px]" id="display-title">JUDUL</h2>
+                    <p class="text-[10px] text-[var(--text-muted)] font-bold uppercase" id="display-creator">Oleh: -</p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="enterReadingMode()" class="btn-tap bg-black text-yellow-400 px-3 py-2 border-2 border-yellow-400 rounded-xl text-xs font-bold uppercase">BACA</button>
+                    <button onclick="openResetModal()" class="btn-tap bg-[var(--input-bg)] text-[var(--text-muted)] p-2 rounded-xl border-2 border-[var(--input-border)]">✖</button>
+                </div>
+            </div>
+
+            <div id="capture-container" class="app-card overflow-hidden mb-6 bg-white border-4 border-black text-black">
+                <div class="relative min-h-[300px] flex items-center justify-center bg-zinc-200">
+                    <div id="panel-label" class="absolute top-4 left-4 bg-black text-white px-3 py-1 font-black text-[10px] z-10 rounded-full uppercase">SAMPUL</div>
+                    <img id="current-panel-img" src="" alt="Comic Panel" class="w-full h-auto object-contain" crossorigin="anonymous">
+                </div>
+                
+                <div id="caption-wrapper" class="p-4 border-t-2 border-black bg-yellow-50">
+                    <textarea id="panel-caption" class="w-full p-2 bg-white border-2 border-black rounded-lg font-bold italic text-sm text-black" rows="2"></textarea>
+                    <div class="flex justify-end gap-2 mt-2">
+                        <button onclick="playTTS()" id="tts-btn" class="btn-tap bg-black text-white p-2 rounded-lg text-xs">🔊 Dengar</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between mb-8">
+                <button onclick="prevPage()" class="btn-tap bg-black text-white p-4 rounded-2xl">←</button>
+                <div class="comic-font text-xl text-[var(--text-muted)]" id="page-indicator">HALAMAN 1</div>
+                <button onclick="nextPage()" class="btn-tap bg-black text-white p-4 rounded-2xl">→</button>
+            </div>
+
+            <div class="space-y-3 mb-24">
+                <button onclick="downloadPDF()" class="btn-tap w-full bg-yellow-400 text-black py-4 font-black text-lg border-2 border-black shadow-[4px_4px_0px_black] comic-font">UNDUH PDF PRO 📚</button>
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="exportImage('png')" class="btn-tap bg-zinc-800 text-white text-xs py-3 border border-zinc-700 font-bold rounded-lg uppercase">PNG</button>
+                    <button onclick="exportIGStory()" class="btn-tap bg-gradient-to-r from-pink-500 to-orange-500 text-white text-xs py-3 font-bold rounded-lg uppercase">IG STORY</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Loading -->
+        <div id="loading-state" class="hidden fixed inset-0 bg-black/90 z-[100] flex flex-col items-center justify-center p-10 text-center">
+            <div class="loader mb-8"></div>
+            <h2 class="comic-font text-3xl text-yellow-400 mb-4 uppercase">AI SEDANG BEKERJA... ✨</h2>
+            <div class="progress-bar-container mb-4">
+                <div id="progress-bar-fill" class="progress-bar-fill"></div>
+            </div>
+            <p id="loading-msg" class="text-[var(--text-muted)] text-[10px] font-bold uppercase tracking-widest max-w-xs">Menghubungkan ke imajinasi...</p>
+        </div>
+
+        <!-- Reset Modal -->
+        <div id="reset-modal" class="hidden fixed inset-0 bg-black/80 z-[110] flex items-center justify-center p-6">
+            <div class="app-card bg-white p-6 text-center max-w-xs text-black border-4 border-black">
+                <h3 class="comic-font text-2xl mb-4">HAPUS PROGRESS?</h3>
+                <div class="flex gap-3">
+                    <button onclick="closeResetModal()" class="flex-1 py-2 border-2 border-zinc-300 font-bold text-sm">Batal</button>
+                    <button onclick="executeReset()" class="flex-1 py-2 bg-red-600 text-white font-bold text-sm border-2 border-black">HAPUS</button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Reading Overlay -->
+    <div id="reading-mode-overlay" class="hidden fixed inset-0 bg-black z-[200] overflow-y-auto">
+        <button onclick="exitReadingMode()" class="fixed top-6 right-6 z-[210] bg-yellow-400 text-black w-10 h-10 rounded-full font-black">×</button>
+        <div id="reading-content-list" class="flex flex-col items-center bg-black"></div>
+    </div>
+
+    <!-- Hidden Render Zone -->
+    <div class="hidden-render-container">
+        <div id="export-render-zone"></div>
+        <div id="ig-story-zone"></div>
+    </div>
+
+    <script>
+        const apiKey = ""; // Disediakan oleh environment
+        let comicData = { title: "", creator: "", genre: "", style: "", charDesc: "", coverUrl: "", panels: [], currentIndex: -1 };
+
+        // --- CORE FUNCTIONS ---
+        function toggleTheme() {
+            document.body.classList.toggle('light-mode');
+            document.getElementById('theme-toggle').innerText = document.body.classList.contains('light-mode') ? "☀️" : "🌙";
+        }
+
+        function updateProgress(percent, message) {
+            const fill = document.getElementById('progress-bar-fill');
+            const msg = document.getElementById('loading-msg');
+            if (fill) fill.style.width = `${percent}%`;
+            if (msg) msg.innerText = message;
+        }
+
+        async function apiRequest(payload, isImage = false, customModel = null) {
+            const model = customModel || (isImage ? 'imagen-4.0-generate-001' : 'gemini-2.5-flash-preview-09-2025');
+            const endpoint = isImage ? 'predict' : 'generateContent';
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:${endpoint}?key=${apiKey}`;
+            
+            const delays = [1000, 2000, 4000];
+            for (let i = 0; i < delays.length; i++) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (response.ok) return await response.json();
+                } catch (e) { console.error("Retry error:", e); }
+                await new Promise(r => setTimeout(r, delays[i]));
+            }
+            throw new Error("API Timeout");
+        }
+
+        async function fetchImage(prompt) {
+            const finalPrompt = `${comicData.style}, ${comicData.genre}. ${prompt}. Character Detail: ${comicData.charDesc}. High quality comic illustration, no text.`;
+            const payload = { instances: { prompt: finalPrompt }, parameters: { sampleCount: 1 } };
+            const res = await apiRequest(payload, true);
+            if (!res.predictions?.[0]?.bytesBase64Encoded) throw new Error("Gagal generate gambar");
+            return `data:image/png;base64,${res.predictions[0].bytesBase64Encoded}`;
+        }
+
+        // --- UI ACTIONS ---
+        function showCreator() {
+            document.getElementById('creator-section').classList.remove('hidden');
+            document.getElementById('welcome-section').classList.add('hidden');
+        }
+
+        function hideCreator() {
+            document.getElementById('creator-section').classList.add('hidden');
+            document.getElementById('welcome-section').classList.remove('hidden');
+        }
+
+        async function suggestTitle() {
+            const desc = document.getElementById('comic-desc').value;
+            if (!desc) return alert("Isi plot singkat dulu!");
+            try {
+                const res = await apiRequest({
+                    contents: [{ parts: [{ text: `Berikan 1 judul komik pendek dan keren untuk cerita ini: "${desc}"` }] }]
+                });
+                const title = res.candidates[0].content.parts[0].text.trim().replace(/"/g, '');
+                document.getElementById('comic-title').value = title;
+            } catch (e) { alert("Gagal mendapatkan saran judul."); }
+        }
+
+        async function generateFullIdea() {
+            const genre = document.getElementById('comic-genre').value;
+            const loading = document.getElementById('loading-state');
+            loading.classList.remove('hidden');
+            updateProgress(30, "Mencari ide cemerlang... 💡");
+            try {
+                const res = await apiRequest({
+                    contents: [{ parts: [{ text: `Buat ide komik genre ${genre}. Berikan judul kreatif, deskripsi karakter utama, dan plot singkat dalam Bahasa Indonesia.` }] }],
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: {
+                            type: "OBJECT",
+                            properties: { title: { type: "STRING" }, character: { type: "STRING" }, plot: { type: "STRING" } }
+                        }
+                    }
+                });
+                const data = JSON.parse(res.candidates[0].content.parts[0].text);
+                document.getElementById('comic-title').value = data.title;
+                document.getElementById('character-desc').value = data.character;
+                document.getElementById('comic-desc').value = data.plot;
+                updateProgress(100, "Ide siap digunakan!");
+            } catch (e) { alert("Gagal mengambil ide."); }
+            finally { setTimeout(() => loading.classList.add('hidden'), 500); }
+        }
+
+        async function generateComic() {
+            const title = document.getElementById('comic-title').value || "Komik Tanpa Judul";
+            const creator = document.getElementById('creator-name').value || "Kreator AI";
+            const genre = document.getElementById('comic-genre').value;
+            const style = document.getElementById('comic-style').value;
+            const charDesc = document.getElementById('character-desc').value;
+            const pages = parseInt(document.getElementById('comic-pages').value);
+            const desc = document.getElementById('comic-desc').value;
+
+            if (!desc) return alert("Silakan isi plot cerita!");
+
+            comicData = { title, creator, genre, style, charDesc, panels: [], currentIndex: -1 };
+            const loading = document.getElementById('loading-state');
+            loading.classList.remove('hidden');
+
+            try {
+                updateProgress(10, "Menggambar Sampul... 🎨");
+                comicData.coverUrl = await fetchImage(`Official comic book cover art titled "${title}"`);
+
+                updateProgress(30, "Menyusun Panel-Panel... 📖");
+                const scriptRes = await apiRequest({
+                    contents: [{ parts: [{ text: `Buat naskah ${pages} panel untuk komik "${title}". Karakter: ${charDesc}. Plot: ${desc}. Berikan narasi panel dalam Bahasa Indonesia.` }] }],
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: {
+                            type: "OBJECT",
+                            properties: { panels: { type: "ARRAY", items: { type: "OBJECT", properties: { prompt: { type: "STRING" }, caption: { type: "STRING" } } } } }
+                        }
+                    }
+                });
+                
+                const script = JSON.parse(scriptRes.candidates[0].content.parts[0].text);
+                for (let i = 0; i < script.panels.length; i++) {
+                    const step = 30 + Math.floor(((i + 1) / pages) * 60);
+                    updateProgress(step, `Melukis Panel ${i+1}/${pages}... 🖌️`);
+                    const img = await fetchImage(script.panels[i].prompt);
+                    comicData.panels.push({ imageUrl: img, caption: script.panels[i].caption });
+                }
+
+                renderPreview();
+            } catch (err) {
+                console.error(err);
+                alert("Gagal membuat komik. Silakan coba kurangi jumlah panel.");
+            } finally {
+                loading.classList.add('hidden');
+            }
+        }
+
+        function renderPreview() {
+            document.getElementById('display-title').innerText = comicData.title;
+            document.getElementById('display-creator').innerText = `Oleh: ${comicData.creator}`;
+            document.getElementById('creator-section').classList.add('hidden');
+            document.getElementById('preview-section').classList.remove('hidden');
+            comicData.currentIndex = -1; // Mulai dari sampul
+            updatePanelDisplay();
+            window.scrollTo(0,0);
+        }
+
+        function updatePanelDisplay() {
+            const imgEl = document.getElementById('current-panel-img');
+            const capEl = document.getElementById('panel-caption');
+            const labelEl = document.getElementById('panel-label');
+            const indicatorEl = document.getElementById('page-indicator');
+
+            if (comicData.currentIndex === -1) {
+                imgEl.src = comicData.coverUrl;
+                capEl.value = `Judul: ${comicData.title}\nGenre: ${comicData.genre}`;
+                labelEl.innerText = "SAMPUL";
+                indicatorEl.innerText = "HALAMAN DEPAN";
+            } else {
+                const panel = comicData.panels[comicData.currentIndex];
+                imgEl.src = panel.imageUrl;
+                capEl.value = panel.caption;
+                labelEl.innerText = `PANEL ${comicData.currentIndex + 1}`;
+                indicatorEl.innerText = `HALAMAN ${comicData.currentIndex + 1}`;
+            }
+        }
+
+        function nextPage() {
+            if (comicData.currentIndex < comicData.panels.length - 1) {
+                comicData.currentIndex++;
+                updatePanelDisplay();
+            }
+        }
+
+        function prevPage() {
+            if (comicData.currentIndex > -1) {
+                comicData.currentIndex--;
+                updatePanelDisplay();
+            }
+        }
+
+        // --- EXPORT & UTILS ---
+        async function downloadPDF() {
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const loading = document.getElementById('loading-state');
+            loading.classList.remove('hidden');
+            updateProgress(50, "Menyusun PDF... 📚");
+
+            try {
+                // Sampul
+                const canvas = await html2canvas(document.getElementById('capture-container'), { scale: 2 });
+                pdf.addImage(canvas.toDataURL('image/jpeg', 0.8), 'JPEG', 10, 10, 190, 240);
+                
+                // Tiap Panel
+                for(let i=0; i<comicData.panels.length; i++) {
+                    pdf.addPage();
+                    comicData.currentIndex = i;
+                    updatePanelDisplay();
+                    await new Promise(r => setTimeout(r, 200)); // Tunggu render
+                    const canvasP = await html2canvas(document.getElementById('capture-container'), { scale: 2 });
+                    pdf.addImage(canvasP.toDataURL('image/jpeg', 0.8), 'JPEG', 10, 10, 190, 240);
+                }
+                
+                pdf.save(`${comicData.title.replace(/\s+/g, '_')}.pdf`);
+            } catch (e) { alert("Gagal export PDF."); }
+            finally { loading.classList.add('hidden'); updatePanelDisplay(); }
+        }
+
+        async function exportImage(ext) {
+            const canvas = await html2canvas(document.getElementById('capture-container'), { scale: 2 });
+            const link = document.createElement('a');
+            link.download = `Panel_${comicData.currentIndex + 1}.${ext}`;
+            link.href = canvas.toDataURL(`image/${ext === 'png' ? 'png' : 'jpeg'}`);
+            link.click();
+        }
+
+        async function playTTS() {
+            const text = document.getElementById('panel-caption').value;
+            if (!text) return;
+            const btn = document.getElementById('tts-btn');
+            btn.innerText = "⏳...";
+            try {
+                const res = await apiRequest({
+                    contents: [{ parts: [{ text: `Bacakan narasi ini dengan nada dramatis: ${text}` }] }],
+                    generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } } } },
+                    model: "gemini-2.5-flash-preview-tts"
+                });
+                const base64Audio = res.candidates[0].content.parts[0].inlineData.data;
+                const audioBlob = await fetch(`data:audio/wav;base64,${base64Audio}`).then(r => r.blob());
+                const audio = new Audio(URL.createObjectURL(audioBlob));
+                audio.play();
+                audio.onended = () => btn.innerText = "🔊 Dengar";
+            } catch (e) { btn.innerText = "🔊 Dengar"; }
+        }
+
+        function enterReadingMode() {
+            const list = document.getElementById('reading-content-list');
+            list.innerHTML = `<img src="${comicData.coverUrl}" class="w-full max-w-2xl border-b-8 border-black">`;
+            comicData.panels.forEach(p => {
+                list.innerHTML += `<div class="w-full max-w-2xl bg-white text-black p-4 border-b-4 border-black">
+                    <img src="${p.imageUrl}" class="w-full mb-4">
+                    <p class="text-xl font-bold italic text-center p-6 bg-yellow-50 border-2 border-black rounded-xl">"${p.caption}"</p>
+                </div>`;
+            });
+            document.getElementById('reading-mode-overlay').classList.remove('hidden');
+            document.body.style.overflow = "hidden";
+        }
+
+        function exitReadingMode() {
+            document.getElementById('reading-mode-overlay').classList.add('hidden');
+            document.body.style.overflow = "auto";
+        }
+
+        function openResetModal() { document.getElementById('reset-modal').classList.remove('hidden'); }
+        function closeResetModal() { document.getElementById('reset-modal').classList.add('hidden'); }
+        function executeReset() { location.reload(); }
+    </script>
+</body>
+</html>
+
             --pattern-opacity: 0.08;
         }
         
